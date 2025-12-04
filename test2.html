@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Freeki - 프리랜서 올인원 앱</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&display=swap');
+
+        :root {
+            --app-bg: #0A0A0C; 
+            --card-bg: #161619; 
+            --primary: #F6B5E8; 
+            --text-white: #FFFFFF;
+            --text-gray: #8E8E93;
+            --text-dark-gray: #3A3A3C;
+            --bar-bg: #2C2C2E;
+        }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #000;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            color: var(--text-white);
+            user-select: none;
+        }
+
+        #app-frame {
+            width: 100%;
+            height: 100%;
+            max-width: 420px;
+            background-color: var(--app-bg);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #content-area {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden; 
+            padding: 0 20px;
+            padding-bottom: 100px;
+            scrollbar-width: none;
+        }
+        #content-area::-webkit-scrollbar { display: none; }
+
+        .font-serif-logo { font-family: 'Playfair Display', serif; }
+
+        .dashboard-card {
+            background-color: var(--card-bg);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 20px;
+            position: relative;
+            will-change: transform;
+            /* Ensure touches work */
+            touch-action: pan-y; 
+        }
+
+        .tag-chip {
+            background-color: #242426;
+            color: #8E8E93;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            margin-right: 4px;
+        }
+
+        .bar-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            height: 120px;
+            width: 24px;
+            gap: 6px;
+        }
+        .bar-value {
+            font-size: 10px;
+            color: var(--text-gray); 
+            font-weight: 600;
+        }
+        .bar {
+            width: 100%;
+            background-color: var(--bar-bg);
+            border-radius: 4px;
+            transition: height 0.5s ease;
+        }
+        .bar.active {
+            background-color: var(--bar-bg);
+        }
+        .day-label {
+            font-size: 10px;
+            color: #555;
+            margin-top: 4px;
+        }
+        .day-label.active {
+            background-color: #333; 
+            color: #FFFFFF; 
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        #bottom-nav {
+            height: 80px;
+            background-color: #1C1C1E; 
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            z-index: 40;
+            padding-bottom: 10px;
+            border-radius: 24px 24px 0 0; 
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.2); 
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 4px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            color: #8E8E93; 
+            font-size: 10px;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .nav-item.active {
+            color: var(--primary); 
+        }
+
+        .nav-item.active .nav-icon {
+            fill: currentColor;
+            stroke: none;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: #333;
+            transition: background-color 0.3s;
+        }
+        .dot.active {
+            background-color: #FFF;
+        }
+
+        .modal-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 50;
+            display: none;
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+        
+        /* Z-Index Management */
+        #list-modal-overlay { z-index: 50; }
+        #edit-modal-overlay { z-index: 60; } 
+        #datetime-picker-overlay { z-index: 70; } 
+        #goal-modal-overlay { z-index: 60; }
+        
+        .bottom-sheet {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #1C1C1E;
+            border-radius: 24px 24px 0 0;
+            padding: 24px;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            max-height: 90%; 
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-overlay.active .bottom-sheet {
+            transform: translateY(0);
+        }
+
+        .center-modal {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 90%;
+            max-width: 380px;
+            background-color: #242426;
+            border-radius: 20px;
+            padding: 24px;
+            opacity: 0;
+            transition: all 0.2s ease;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+        .modal-overlay.active .center-modal {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        .input-dark {
+            background-color: #2C2C2E;
+            color: white;
+            padding: 14px;
+            border-radius: 12px;
+            width: 100%;
+            margin-bottom: 12px;
+            border: 1px solid transparent;
+            font-size: 15px;
+            transition: all 0.2s;
+            -webkit-appearance: none;
+            min-height: 48px; 
+            cursor: pointer; 
+        }
+        .input-dark:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: #333;
+        }
+        
+        .fab-button {
+            position: absolute;
+            bottom: 95px; 
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            background-color: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(246, 181, 232, 0.4);
+            z-index: 45; 
+            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .fab-button:active {
+            transform: scale(0.9);
+        }
+        .fab-button svg {
+            stroke: #101013;
+            stroke-width: 3;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #3A3A3C;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            text-align: center;
+        }
+        .calendar-day-header {
+            font-size: 10px;
+            color: #8E8E93;
+            padding-bottom: 4px;
+        }
+        .calendar-day {
+            font-size: 13px;
+            padding: 8px 0; 
+            border-radius: 8px;
+            cursor: pointer;
+            color: #fff;
+            transition: background-color 0.2s;
+        }
+        .calendar-day:hover {
+            background-color: #3A3A3C;
+        }
+        .calendar-day.selected {
+            background-color: var(--primary);
+            color: #101013;
+            font-weight: bold;
+            box-shadow: 0 0 8px rgba(246, 181, 232, 0.4);
+        }
+        .calendar-day.empty {
+            pointer-events: none;
+        }
+
+        .time-box {
+            background-color: #1C1C1E; 
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+            position: relative;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .time-box:active {
+            transform: scale(0.98);
+            border-color: #555;
+        }
+        .time-box-label {
+            font-size: 12px;
+            color: #8E8E93;
+            margin-bottom: 4px;
+            text-align: left;
+        }
+        .time-box-value {
+            font-size: 24px; 
+            font-weight: 700;
+            color: #FFFFFF;
+        }
+        .time-input-trigger {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        .group-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: #8E8E93;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            padding-left: 4px;
+        }
+        .group-header:first-child { margin-top: 0; }
+
+        .profile-upload {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: #2C2C2E;
+            border: 1px solid #444;
+            margin: 0 auto 20px auto;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .profile-upload img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .profile-upload-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30%;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-body-scroll {
+            overflow-y: auto;
+            flex: 1;
+            padding-right: 4px;
+            -ms-overflow-style: none; 
+            scrollbar-width: none; 
+        }
+        .modal-body-scroll::-webkit-scrollbar { display: none; }
+
+    </style>
+</head>
+<body>
+
+    <div id="app-frame">
+        <!-- Content Area -->
+        <div id="content-area">
+            
+            <!-- Header Section -->
+            <div class="pt-8 pb-4"> 
+                <h1 class="font-serif-logo text-2xl mb-6 tracking-wide">fPreky</h1>
+                
+                <div class="flex justify-between items-end">
+                    <!-- Left: Amount -->
+                    <div>
+                        <span class="text-[#8E8E93] text-sm block mb-1">~ Today</span>
+                        <div class="flex items-center gap-1">
+                            <span class="text-[#555] text-2xl font-light">₩</span>
+                            <span id="header-total-amount" class="text-white text-3xl font-bold tracking-tight">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Right: Goal Rate -->
+                    <div class="text-right">
+                        <div class="flex items-center justify-end gap-1 mb-1 cursor-pointer" onclick="openGoalModal()">
+                            <span class="text-[#8E8E93] text-xs">목표 달성률</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
+                        </div>
+                        <span id="header-goal-rate" class="text-white text-lg font-medium">0<span class="text-sm text-[#8E8E93]">%</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1. Schedule Card -->
+            <div id="card-carousel" class="relative overflow-visible" style="touch-action: pan-y;"> 
+                <!-- Changed ID to schedule-card-container for clarity -->
+                <div id="schedule-card" class="dashboard-card pb-0 overflow-hidden cursor-grab active:cursor-grabbing select-none">
+                    <div class="mb-4"> 
+                        <div class="flex justify-between items-start mb-6"> 
+                            <div class="flex items-center gap-3">
+                                <div id="card-profile-img" class="w-12 h-12 rounded-full border border-gray-600 flex items-center justify-center bg-[#2C2C2E] overflow-hidden"></div>
+                                <div>
+                                    <div class="flex items-baseline gap-1">
+                                        <span id="card-name" class="text-[#FFFFFF] text-lg font-semibold"></span> 
+                                        <span class="text-white text-base">님</span>
+                                    </div>
+                                    <div id="card-insta" class="text-[#8E8E93] text-sm"></div>
+                                </div>
+                            </div>
+                            <div id="card-settings-btn" onclick="openEditModal(event)" class="p-2 -mr-2 text-[#8E8E93] hover:text-white cursor-pointer transition-colors z-10">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </div>
+                        </div>
+                        <div id="card-date" class="text-[#F6B5E8] text-sm font-semibold mb-1 tracking-wide"></div>
+                        <div id="card-time" class="text-[36px] font-bold leading-tight mb-5 tracking-tight"></div>
+                        <div class="border-l-2 border-[#333] pl-4 py-1 mb-6">
+                            <div id="card-type" class="text-white text-base mb-1"></div>
+                            <div id="card-location" class="text-[#8E8E93] text-sm"></div>
+                            <div id="card-price" class="text-[#F6B5E8] text-sm font-bold mt-1"></div>
+                        </div>
+                        <div id="card-tags" class="flex flex-wrap gap-1 mb-2"></div>
+                    </div>
+                    <div id="card-footer-btn" onclick="openScheduleList()" class="bg-[#242426] mx-[-24px] py-4 text-center cursor-pointer border-t border-[#333] hover:bg-[#2a2a2c] transition-colors relative z-10">
+                        <span class="text-[#8E8E93] text-sm">오늘 일정 전체 보기</span>
+                        <span id="total-count-badge" class="text-[#F6B5E8] text-sm font-bold ml-1">+0</span> 
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dots -->
+            <div id="pagination-dots" class="flex justify-center gap-1.5 mb-6"></div>
+
+            <!-- 2. Chart Card -->
+            <div class="dashboard-card">
+                <div class="flex">
+                    <div class="w-1/3 flex flex-col justify-between pt-2 pb-6">
+                        <div>
+                            <div class="text-[#8E8E93] text-xs mb-1">이번 주 예약</div>
+                            <div id="weekly-total" class="text-[28px] font-bold leading-none mb-1">0 <span class="text-base font-normal text-[#555]">건</span></div>
+                        </div>
+                        <div class="mt-6">
+                            <div class="text-[#8E8E93] text-xs mb-1">오늘</div>
+                            <div id="today-total" class="text-[28px] font-bold leading-none">0 <span class="text-base font-normal text-[#555]">건</span></div>
+                        </div>
+                    </div>
+                    <div class="w-2/3 flex justify-between items-end pl-2" id="chart-bars"></div>
+                </div>
+                <div class="mt-6 pt-4 border-t border-[#333] text-center">
+                    <span class="text-[#8E8E93] text-sm">캘린더 보기</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="fab-button" onclick="openAddModal()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </div>
+
+        <nav id="bottom-nav">
+            <div class="nav-item active"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg><span>홈</span></div>
+            <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg><span>일정</span></div>
+            <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span>고객</span></div>
+        </nav>
+
+        <div id="goal-modal-overlay" class="modal-overlay">
+             <div class="center-modal">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-white">목표 설정</h3>
+                    <button onclick="closeModals()" class="text-[#8E8E93]">닫기</button>
+                </div>
+                <label class="text-xs text-[#8E8E93] mb-1 ml-1 block">이번 달 목표 금액 (원)</label>
+                <input type="number" id="goal-input" class="input-dark text-center text-xl font-bold" value="1000000">
+                <button onclick="saveGoal()" class="w-full bg-[#F6B5E8] text-[#101013] font-bold py-3 rounded-xl mt-4">저장</button>
+             </div>
+        </div>
+
+        <div id="edit-modal-overlay" class="modal-overlay">
+            <div class="bottom-sheet h-auto max-h-[90%] flex flex-col">
+                <div class="flex justify-between items-center mb-6 px-6 pt-6">
+                    <h3 class="text-lg font-bold">고객 정보 수정</h3>
+                    <button onclick="closeEditModal()" class="text-[#8E8E93]">닫기</button>
+                </div>
+                <div class="modal-body-scroll px-6 pb-6">
+                    <div class="profile-upload" onclick="document.getElementById('edit-profile-input').click()">
+                        <img id="edit-profile-preview" src="" class="hidden">
+                        <div id="edit-profile-placeholder" class="w-full h-full flex items-center justify-center text-gray-400">
+                             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                        </div>
+                        <div class="profile-upload-overlay"><span class="text-[10px] text-white">편집</span></div>
+                        <input type="file" id="edit-profile-input" class="hidden" accept="image/*" onchange="handleImageUpload(this, 'edit')">
+                    </div>
+                    <div class="space-y-4">
+                        <div><label class="text-xs text-[#8E8E93] mb-1 ml-1 block">이름</label><input type="text" id="edit-name" class="input-dark" placeholder="이름"></div>
+                        <div><label class="text-xs text-[#8E8E93] mb-1 ml-1 block">인스타 ID</label><input type="text" id="edit-insta" class="input-dark" placeholder="인스타 ID"></div>
+                        <div class="flex gap-2">
+                            <div class="w-2/3"><label class="text-xs text-[#8E8E93] mb-1 ml-1 block">날짜</label><input type="date" id="edit-date" class="input-dark text-center font-bold"></div>
+                            <div class="w-1/3"><label class="text-xs text-[#8E8E93] mb-1 ml-1 block">시간</label><input type="time" id="edit-time" class="input-dark text-center"></div>
+                        </div>
+                        <div><label class="text-xs text-[#8E8E93] mb-1 ml-1 block">시술 종류</label><input type="text" id="edit-type" class="input-dark" placeholder="시술 종류"></div>
+                        <div><label class="text-xs text-[#8E8E93] mb-1 ml-1 block">금액 (원)</label><input type="number" id="edit-price" class="input-dark" placeholder="금액"></div>
+                        <div><label class="text-xs text-[#8E8E93] mb-1 ml-1 block">장소</label><input type="text" id="edit-location" class="input-dark" placeholder="장소"></div>
+                        <div><label class="text-xs text-[#8E8E93] mb-1 ml-1 block">태그 (쉼표로 구분)</label><input type="text" id="edit-tags" class="input-dark" placeholder="태그"></div>
+                    </div>
+                    <div class="flex gap-3 mt-6">
+                        <button onclick="deleteSchedule()" class="w-1/3 bg-[#3A1826] text-[#F6B5E8] font-bold py-4 rounded-xl">삭제</button>
+                        <button onclick="saveEdit()" class="w-2/3 bg-[#F6B5E8] text-[#101013] font-bold py-4 rounded-xl">저장하기</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="add-modal-overlay" class="modal-overlay">
+            <div class="bottom-sheet h-[90%] flex flex-col">
+                <div class="flex justify-between items-center mb-6 px-6 pt-6">
+                    <h3 class="text-lg font-bold">새 일정 추가</h3>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-[#F6B5E8] font-bold">🤖 AI</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="ai-toggle" onchange="toggleAIMode()">
+                            <span class="slider"></span>
+                        </label>
+                        <button onclick="closeModals()" class="text-[#8E8E93] ml-4">닫기</button>
+                    </div>
+                </div>
+                <div class="modal-body-scroll px-6 pb-6">
+                    <div id="ai-section" class="hidden mb-6">
+                        <div class="bg-[#242426] p-4 rounded-xl mb-3 border border-[#3A1826]">
+                            <textarea id="ai-input-text" class="w-full bg-transparent text-white text-sm outline-none resize-none h-24" placeholder="예: 12월 10일 3시 김민수님 메이크업 예약. 금액 15만원"></textarea>
+                        </div>
+                        <button onclick="analyzeText()" class="w-full bg-[#3A3A3C] text-white font-bold py-3 rounded-xl border border-[#555]">분석 및 자동 채우기</button>
+                    </div>
+                    <div id="manual-inputs">
+                        <div class="profile-upload" onclick="document.getElementById('add-profile-input').click()">
+                            <img id="add-profile-preview" src="" class="hidden">
+                            <div id="add-profile-placeholder" class="w-full h-full flex items-center justify-center text-gray-400">
+                                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                            </div>
+                            <div class="profile-upload-overlay"><span class="text-[10px] text-white">추가</span></div>
+                            <input type="file" id="add-profile-input" class="hidden" accept="image/*" onchange="handleImageUpload(this, 'add')">
+                        </div>
+                        <label class="text-xs text-[#8E8E93] mb-1 ml-1">고객명</label><input type="text" id="add-name" class="input-dark">
+                        <label class="text-xs text-[#8E8E93] mb-1 ml-1">인스타 ID</label><input type="text" id="add-insta" class="input-dark">
+                        <label class="text-xs text-[#8E8E93] mb-1 ml-1">날짜 및 시간</label>
+                        <div class="input-dark flex items-center cursor-pointer mb-3 bg-[#2C2C2E]" onclick="openDateTimePicker()">
+                            <span id="datetime-display" class="text-sm truncate">날짜와 시간을 선택하세요</span>
+                        </div>
+                        <input type="hidden" id="add-date"><input type="hidden" id="add-start-time">
+                        <label class="text-xs text-[#8E8E93] mb-1 ml-1">시술 종류</label><input type="text" id="add-type" class="input-dark">
+                        <label class="text-xs text-[#8E8E93] mb-1 ml-1">금액 (원)</label><input type="number" id="add-price" class="input-dark" placeholder="0">
+                        <label class="text-xs text-[#8E8E93] mb-1 ml-1">장소</label><input type="text" id="add-location" class="input-dark">
+                        <label class="text-xs text-[#8E8E93] mb-1 ml-1">태그</label><input type="text" id="add-tags" class="input-dark">
+                    </div>
+                    <button onclick="saveNewSchedule()" class="w-full bg-[#F6B5E8] text-[#101013] font-bold py-4 rounded-xl mt-4">등록하기</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="datetime-picker-overlay" class="modal-overlay">
+            <div class="bottom-sheet h-auto">
+                 <div class="flex justify-between items-center mb-6"><h3 class="text-lg font-bold">시간 설정</h3><button onclick="closeDateTimePicker()" class="text-[#8E8E93]">닫기</button></div>
+                 <div class="bg-[#242426] rounded-2xl p-4 flex gap-4 h-[340px]">
+                     <div class="flex-1 flex flex-col border-r border-[#333] pr-4">
+                         <div class="flex justify-between items-center mb-4 px-1"><span id="cal-month-year" class="font-bold text-xl text-white"></span><div class="flex gap-4 text-[#8E8E93]"><button onclick="changeMonth(-1)">‹</button><button onclick="changeMonth(1)">›</button></div></div>
+                         <div class="calendar-grid mb-2"><div class="calendar-day-header">일</div><div class="calendar-day-header">월</div><div class="calendar-day-header">화</div><div class="calendar-day-header">수</div><div class="calendar-day-header">목</div><div class="calendar-day-header">금</div><div class="calendar-day-header">토</div></div>
+                         <div id="calendar-days" class="calendar-grid flex-1 overflow-y-auto"></div>
+                     </div>
+                     <div class="w-[120px] flex flex-col justify-center gap-4"><div class="time-box h-32"><div class="time-box-label">시작 시간</div><div id="display-start-time" class="time-box-value">--:--</div><input type="time" id="picker-start-time" class="time-input-trigger" onchange="updateTimeDisplay(this, 'start')"></div></div>
+                 </div>
+                 <button onclick="saveDateTime()" class="w-full bg-[#3A3A3C] text-white font-bold py-4 rounded-xl border border-[#555] mt-4">확인</button>
+            </div>
+        </div>
+
+        <div id="ai-review-overlay" class="modal-overlay">
+            <div class="center-modal">
+                <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-white">AI 분석 결과</h3><button onclick="closeReviewModal()" class="text-[#8E8E93]">&times;</button></div>
+                <div class="bg-[#1C1C1E] p-3 rounded-lg mb-4"><p id="review-original" class="text-xs text-white opacity-80 leading-relaxed"></p></div>
+                <div class="space-y-3">
+                    <input type="text" id="review-name" class="input-dark py-2 text-sm">
+                    <input type="date" id="review-date" class="input-dark py-2 text-sm text-center">
+                    <input type="time" id="review-start-time" class="input-dark py-2 text-sm text-center">
+                    <input type="text" id="review-type" class="input-dark py-2 text-sm">
+                    <input type="text" id="review-location" class="input-dark py-2 text-sm">
+                </div>
+                <button onclick="confirmAIResult()" class="w-full bg-[#F6B5E8] text-[#101013] font-bold py-3 rounded-xl mt-6">적용하기</button>
+            </div>
+        </div>
+
+        <div id="list-modal-overlay" class="modal-overlay">
+            <div class="bottom-sheet h-[80%]">
+                <div class="flex justify-between items-center mb-6"><h3 class="text-lg font-bold">전체 일정 (<span id="modal-total-count">0</span>건)</h3><button onclick="closeModals()" class="text-[#8E8E93]">닫기</button></div>
+                <div id="schedule-list-content" class="overflow-y-auto pr-2 space-y-3"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Data
+        let scheduleData = [
+            { date: "2025-12-05", time: "14:00", name: "이준수", insta: "#najunsuda", type: "바디프로필", location: "스튜디오 다이브", tags: ["최다 방문고객"], color: "#FFFFFF", profileImage: null, price: 150000 },
+            { date: "2025-12-05", time: "17:00", name: "이유나", insta: "#yuna_wedding", type: "웨딩 본식", location: "청담 보이드", tags: ["신부님"], color: "#FFFFFF", profileImage: null, price: 300000 },
+            { date: "2025-12-06", time: "20:00", name: "김민지", insta: "#minji_daily", type: "데일리", location: "강남역", tags: ["첫방문"], color: "#FFFFFF", profileImage: null, price: 100000 }
+        ];
+        
+        let goalAmount = 1000000;
+        let currentIndex = 0;
+        let tempProfileImage = null;
+        let isEditingFromList = false;
+        let startX = 0, currentX = 0, isDragging = false, isAnimating = false;
+        let pickerCurrentDate = new Date();
+        let pickerSelectedDate = new Date();
+
+        const cardEl = document.getElementById('schedule-card');
+        const dotsContainer = document.getElementById('pagination-dots');
+
+        // Render Logic
+        function renderAll() {
+            sortScheduleData();
+            if (currentIndex === -1) currentIndex = findNextEventIndex();
+            if (currentIndex >= scheduleData.length) currentIndex = Math.max(0, scheduleData.length - 1);
+
+            initDots();
+            updateHeaderStats(); 
+            updateTotalCount();
+            updateChart();
+
+            if(scheduleData.length > 0) {
+                updateCardContent(scheduleData[currentIndex]);
+                updateDots(currentIndex);
+                cardEl.style.opacity = '1';
+            } else {
+                document.getElementById('card-name').textContent = "일정 없음";
+                document.getElementById('card-time').textContent = "--:--";
+                document.getElementById('card-date').textContent = "-";
+                document.getElementById('card-tags').innerHTML = "";
+                document.getElementById('card-price').innerText = "";
+                cardEl.style.opacity = '0.5';
+            }
+        }
+
+        function findNextEventIndex() {
+            const now = new Date();
+            for(let i=0; i<scheduleData.length; i++) {
+                const dt = new Date(`${scheduleData[i].date}T${scheduleData[i].time}`);
+                if (dt >= now) return i;
+            }
+            return scheduleData.length > 0 ? scheduleData.length - 1 : 0;
+        }
+
+        function sortScheduleData() {
+            scheduleData.sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
+        }
+        
+        function updateHeaderStats() {
+            const total = scheduleData.reduce((sum, item) => sum + (parseInt(item.price) || 0), 0);
+            document.getElementById('header-total-amount').innerText = total.toLocaleString();
+            const rate = goalAmount > 0 ? Math.round((total / goalAmount) * 100) : 0;
+            document.getElementById('header-goal-rate').innerHTML = `${rate}<span class="text-sm text-[#8E8E93]">%</span>`;
+        }
+
+        function updateTotalCount() {
+            const count = scheduleData.length;
+            document.getElementById('total-count-badge').textContent = `+${count}`;
+            const modalCount = document.getElementById('modal-total-count');
+            if (modalCount) modalCount.textContent = count;
+        }
+
+        function updateChart() {
+            const chartContainer = document.getElementById('chart-bars');
+            chartContainer.innerHTML = '';
+            const now = new Date();
+            const currentDay = now.getDay(); 
+            const distToMon = currentDay === 0 ? 6 : currentDay - 1;
+            const mondayDate = new Date(now);
+            mondayDate.setDate(now.getDate() - distToMon);
+
+            const counts = [0, 0, 0, 0, 0, 0, 0];
+            const dayLabels = ["월", "화", "수", "목", "금", "토", "일"];
+            const weekDates = [];
+            for(let i=0; i<7; i++) {
+                const d = new Date(mondayDate);
+                d.setDate(mondayDate.getDate() + i);
+                weekDates.push(d.toISOString().split('T')[0]);
+            }
+
+            scheduleData.forEach(item => {
+                const itemDate = item.date;
+                const dayIndex = weekDates.indexOf(itemDate);
+                if (dayIndex !== -1) counts[dayIndex]++;
+            });
+
+            const todayStr = now.toISOString().split('T')[0];
+            const todayCount = scheduleData.filter(i => i.date === todayStr).length;
+            document.getElementById('today-total').innerHTML = `${todayCount} <span class="text-base font-normal text-[#555]">건</span>`;
+            document.getElementById('weekly-total').innerHTML = `${scheduleData.length} <span class="text-base font-normal text-[#555]">건</span>`;
+
+            const maxVal = Math.max(5, ...counts);
+            counts.forEach((count, idx) => {
+                const heightPct = Math.round((count / maxVal) * 100);
+                const isTodayBar = weekDates[idx] === todayStr;
+                const valColor = count > 0 ? (isTodayBar ? '#FFFFFF' : '#8E8E93') : '#333';
+                const barBg = isTodayBar ? '#FFFFFF' : '#2C2C2E';
+                const html = `<div class="bar-container"><span class="bar-value" style="color:${valColor}">+${count}</span><div class="bar" style="height: ${heightPct}%; background-color: ${barBg}"></div><span class="day-label ${isTodayBar ? 'active' : ''}">${dayLabels[idx]}</span></div>`;
+                chartContainer.innerHTML += html;
+            });
+        }
+        
+        function initDots() {
+            dotsContainer.innerHTML = '';
+            scheduleData.forEach((_, idx) => {
+                const dot = document.createElement('div');
+                dot.classList.add('dot');
+                if (idx === currentIndex) dot.classList.add('active');
+                dotsContainer.appendChild(dot);
+            });
+        }
+
+        function updateDots(index) {
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((dot, idx) => {
+                if (idx === index) dot.classList.add('active');
+                else dot.classList.remove('active');
+            });
+        }
+
+        function updateCardContent(d) { 
+            document.getElementById('card-name').innerText = d.name; 
+            document.getElementById('card-time').innerText = d.time;
+            document.getElementById('card-date').innerText = getFormattedDateWithDay(d.date);
+            document.getElementById('card-insta').innerText = d.insta;
+            document.getElementById('card-type').innerText = d.type;
+            document.getElementById('card-location').innerText = d.location;
+            document.getElementById('card-price').innerText = (parseInt(d.price) || 0).toLocaleString() + "원";
+            const imgContainer = document.getElementById('card-profile-img');
+            if (d.profileImage) imgContainer.innerHTML = `<img src="${d.profileImage}" class="w-full h-full object-cover">`;
+            else imgContainer.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+             const tagsContainer = document.getElementById('card-tags');
+            tagsContainer.innerHTML = d.tags.map(tag => `<span class="tag-chip">${tag}</span>`).join('');
+        }
+
+        function getFormattedDateWithDay(s) { 
+             const d = new Date(s); 
+             const days = ['일','월','화','수','목','금','토'];
+             return `${s.replace(/-/g,'.')} (${days[d.getDay()]})`;
+        }
+
+        // Swipe & Mouse Logic
+        function handleSwipe(direction, moveDistance) {
+            isAnimating = true;
+            cardEl.style.transform = `translateX(${direction === 'next' ? -moveDistance : moveDistance}px)`;
+            setTimeout(() => {
+                if (direction === 'next') currentIndex++; else currentIndex--;
+                updateCardContent(scheduleData[currentIndex]);
+                updateDots(currentIndex);
+                cardEl.style.transition = 'none';
+                cardEl.style.transform = `translateX(${direction === 'next' ? moveDistance : -moveDistance}px)`;
+                void cardEl.offsetWidth; 
+                cardEl.style.transition = 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                cardEl.style.transform = 'translateX(0)';
+                setTimeout(() => { isAnimating = false; }, 200);
+            }, 150);
+        }
+        function resetPosition() { cardEl.style.transform = 'translateX(0)'; }
+        
+        cardEl.addEventListener('touchstart', (e) => {
+             if (e.target.closest('#card-settings-btn') || e.target.closest('#card-footer-btn')) return;
+             if(isAnimating) return;
+             startX = e.touches[0].clientX;
+             currentX = startX;
+             isDragging = true;
+             cardEl.style.transition = 'none';
+        }, {passive: true});
+        cardEl.addEventListener('touchmove', (e) => {
+             if (!isDragging) return;
+             currentX = e.touches[0].clientX;
+             cardEl.style.transform = `translateX(${currentX - startX}px)`;
+        }, {passive: true});
+        cardEl.addEventListener('touchend', () => {
+             if (!isDragging) return;
+             isDragging = false;
+             const diff = currentX - startX;
+             cardEl.style.transition = 'transform 0.15s ease-out';
+             if (diff < -60 && currentIndex < scheduleData.length - 1) handleSwipe('next', cardEl.offsetWidth + 50);
+             else if (diff > 60 && currentIndex > 0) handleSwipe('prev', cardEl.offsetWidth + 50);
+             else resetPosition();
+        });
+        
+        // Mouse Logic
+        cardEl.addEventListener('mousedown', (e) => {
+            if (e.target.closest('button') || e.target.closest('.pointer-events-auto')) return;
+            isAnimating = false;
+            startX = e.clientX;
+            currentX = startX;
+            isDragging = true;
+            cardEl.style.transition = 'none'; 
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            currentX = e.clientX;
+            const diff = currentX - startX;
+            cardEl.style.transform = `translateX(${diff}px)`;
+        });
+        window.addEventListener('mouseup', () => {
+            if (!isDragging) return;
+            isDragging = false;
+            const diff = currentX - startX;
+            const threshold = 60;
+            const screenWidth = cardEl.offsetWidth + 50;
+            cardEl.style.transition = 'transform 0.15s ease-out';
+            if (diff < -threshold && currentIndex < scheduleData.length - 1) handleSwipe('next', screenWidth);
+            else if (diff > threshold && currentIndex > 0) handleSwipe('prev', screenWidth);
+            else resetPosition();
+        });
+
+        // Modal Logic
+        function openEditModal(e, index = -1, fromList = false) {
+            if(e) e.stopPropagation();
+            isEditingFromList = fromList;
+            if(index !== -1) currentIndex = index;
+            const data = scheduleData[currentIndex];
+            if(!data) return;
+            
+            document.getElementById('edit-name').value = data.name;
+            document.getElementById('edit-price').value = data.price || 0;
+            document.getElementById('edit-insta').value = data.insta;
+            document.getElementById('edit-date').value = data.date;
+            document.getElementById('edit-time').value = data.time;
+            document.getElementById('edit-type').value = data.type;
+            document.getElementById('edit-location').value = data.location;
+            document.getElementById('edit-tags').value = data.tags.join(', ');
+            
+            tempProfileImage = data.profileImage;
+            const preview = document.getElementById('edit-profile-preview');
+            const placeholder = document.getElementById('edit-profile-placeholder');
+            if(tempProfileImage) { preview.src = tempProfileImage; preview.classList.remove('hidden'); placeholder.classList.add('hidden'); }
+            else { preview.src=""; preview.classList.add('hidden'); placeholder.classList.remove('hidden'); }
+            
+            document.getElementById('edit-modal-overlay').classList.add('active');
+        }
+        
+        function closeEditModal() { document.getElementById('edit-modal-overlay').classList.remove('active'); }
+
+        function saveEdit() {
+            if(scheduleData.length === 0) return;
+            const idx = currentIndex;
+            scheduleData[idx].name = document.getElementById('edit-name').value;
+            scheduleData[idx].insta = document.getElementById('edit-insta').value;
+            scheduleData[idx].date = document.getElementById('edit-date').value;
+            scheduleData[idx].time = document.getElementById('edit-time').value;
+            scheduleData[idx].type = document.getElementById('edit-type').value;
+            scheduleData[idx].price = document.getElementById('edit-price').value; 
+            scheduleData[idx].location = document.getElementById('edit-location').value;
+            scheduleData[idx].tags = (document.getElementById('edit-tags').value || "").split(',').filter(t=>t);
+            if(tempProfileImage) scheduleData[idx].profileImage = tempProfileImage;
+            
+            renderAll();
+            if(isEditingFromList) { openScheduleList(); closeEditModal(); } else { closeModals(); }
+        }
+
+        function deleteSchedule() {
+            if(scheduleData.length === 0) return;
+            if(confirm("정말 삭제하시겠습니까?")) {
+                scheduleData.splice(currentIndex, 1);
+                if(currentIndex >= scheduleData.length) currentIndex = Math.max(0, scheduleData.length - 1);
+                renderAll();
+                if(isEditingFromList) { openScheduleList(); closeEditModal(); } else { closeModals(); }
+            }
+        }
+
+        function openAddModal() {
+            document.getElementById('ai-toggle').checked = false;
+            toggleAIMode(); 
+            document.getElementById('add-name').value = '';
+            document.getElementById('add-insta').value = ''; 
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('add-date').value = today;
+            document.getElementById('add-start-time').value = '14:00';
+            updateDisplayBox(today, '14:00');
+            document.getElementById('add-type').value = '';
+            document.getElementById('add-location').value = '';
+            document.getElementById('add-tags').value = ''; 
+            document.getElementById('add-price').value = ''; 
+            document.getElementById('ai-input-text').value = '';
+            tempProfileImage = null;
+            document.getElementById('add-profile-preview').classList.add('hidden');
+            document.getElementById('add-profile-placeholder').classList.remove('hidden');
+            document.getElementById('add-profile-input').value = '';
+            document.getElementById('add-modal-overlay').classList.add('active');
+        }
+
+        function saveNewSchedule() {
+            const name = document.getElementById('add-name').value;
+            const price = document.getElementById('add-price').value;
+            const sTime = document.getElementById('add-start-time').value;
+            if (!name || !sTime) return alert("이름/시간 필수");
+            const date = document.getElementById('add-date').value || new Date().toISOString().split('T')[0];
+            const tags = (document.getElementById('add-tags').value || "").split(',').filter(t=>t);
+            
+            scheduleData.push({
+                date: date, time: sTime, name: name, 
+                insta: document.getElementById('add-insta').value,
+                type: document.getElementById('add-type').value,
+                location: document.getElementById('add-location').value,
+                tags: tags, color: "#FFFFFF", profileImage: tempProfileImage,
+                price: price || 0 
+            });
+            currentIndex = scheduleData.length - 1;
+            renderAll();
+            closeModals();
+            alert("새 일정이 등록되었습니다!");
+        }
+
+        function openScheduleList() {
+            const overlay = document.getElementById('list-modal-overlay');
+            const container = document.getElementById('schedule-list-content');
+            container.innerHTML = '';
+            sortScheduleData();
+            let lastDate = '';
+            scheduleData.forEach((item, idx) => {
+                if (item.date !== lastDate) {
+                    const dateObj = new Date(item.date);
+                    const days = ['일', '월', '화', '수', '목', '금', '토'];
+                    const dateStr = `${dateObj.getMonth()+1}월 ${dateObj.getDate()}일 (${days[dateObj.getDay()]})`;
+                    container.innerHTML += `<div class="group-header">${dateStr}</div>`;
+                    lastDate = item.date;
+                }
+                let imgHTML = item.profileImage ? `<img src="${item.profileImage}" class="w-full h-full object-cover rounded-full">` : `<div class="w-full h-full bg-[#3A3A3C] rounded-full flex items-center justify-center text-xs text-gray-400 font-bold">${item.name[0]}</div>`;
+                const itemHTML = `
+                    <div class="bg-[#2C2C2E] p-4 rounded-xl flex items-center justify-between mb-2 cursor-pointer active:scale-95 transition-transform" onclick="openEditModal(event, ${idx}, true)">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full flex-shrink-0 border border-[#444] overflow-hidden">${imgHTML}</div>
+                            <div><div class="text-xs text-[#8E8E93] mb-0.5">${item.time}</div><div class="flex items-center gap-2"><span class="font-bold text-white text-sm">${item.name}</span><span class="text-xs text-[#8E8E93] border-l border-[#444] pl-2">${item.type}</span></div></div>
+                        </div>
+                        <div class="text-[#8E8E93]">›</div>
+                    </div>`;
+                container.appendChild(document.createRange().createContextualFragment(itemHTML));
+            });
+            overlay.classList.add('active');
+        }
+
+        // --- AI & Helpers ---
+        function toggleAIMode() {
+            const isAI = document.getElementById('ai-toggle').checked;
+            const aiSection = document.getElementById('ai-section');
+            if (isAI) aiSection.classList.remove('hidden');
+            else aiSection.classList.add('hidden');
+        }
+        function analyzeText() {
+            const text = document.getElementById('ai-input-text').value;
+            if (!text.trim()) return alert("텍스트 입력 필요");
+             document.getElementById('review-original').innerText = text;
+             document.getElementById('ai-review-overlay').classList.add('active');
+        }
+        function confirmAIResult() { closeReviewModal(); toggleAIMode(); }
+        function closeReviewModal() { document.getElementById('ai-review-overlay').classList.remove('active'); }
+        
+        function openGoalModal() {
+            document.getElementById('goal-input').value = goalAmount;
+            document.getElementById('goal-modal-overlay').classList.add('active');
+        }
+        function saveGoal() {
+            const val = parseInt(document.getElementById('goal-input').value);
+            if (val) goalAmount = val;
+            updateHeaderStats();
+            closeModals();
+        }
+        function closeModals() { document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('active')); }
+        function handleNavClick(element) { document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active')); element.classList.add('active'); }
+        function handleImageUpload(input, type) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    tempProfileImage = e.target.result;
+                    const previewId = type === 'add' ? 'add-profile-preview' : 'edit-profile-preview';
+                    const placeholderId = type === 'add' ? 'add-profile-placeholder' : 'edit-profile-placeholder';
+                    document.getElementById(previewId).src = tempProfileImage;
+                    document.getElementById(previewId).classList.remove('hidden');
+                    document.getElementById(placeholderId).classList.add('hidden');
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        
+        // Date Picker
+        function openDateTimePicker() {
+            const val = document.getElementById('add-date').value;
+            pickerSelectedDate = val ? new Date(val) : new Date();
+            pickerCurrentDate = new Date(pickerSelectedDate); 
+            document.getElementById('picker-start-time').value = document.getElementById('add-start-time').value;
+            updateTimeDisplay(document.getElementById('picker-start-time'), 'start');
+            renderCalendar();
+            document.getElementById('datetime-picker-overlay').classList.add('active');
+        }
+        function updateTimeDisplay(input, type) {
+            const val = input.value;
+            if (!val) return;
+            let [h, m] = val.split(':').map(Number);
+            const ampm = h >= 12 ? '오후' : '오전';
+            if (h > 12) h -= 12;
+            if (h === 0) h = 12;
+            document.getElementById(`display-start-time`).innerText = `${ampm} ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+        }
+        function renderCalendar() {
+            const year = pickerCurrentDate.getFullYear();
+            const month = pickerCurrentDate.getMonth();
+            document.getElementById('cal-month-year').innerText = `${year}.${String(month+1).padStart(2,'0')}`;
+            const firstDay = new Date(year, month, 1).getDay();
+            const lastDate = new Date(year, month+1, 0).getDate();
+            const container = document.getElementById('calendar-days');
+            container.innerHTML = '';
+            for(let i=0; i<firstDay; i++) container.innerHTML += `<div class="calendar-day empty"></div>`;
+            for(let i=1; i<=lastDate; i++) {
+                const isSelected = i === pickerSelectedDate.getDate() && month === pickerSelectedDate.getMonth() && year === pickerSelectedDate.getFullYear();
+                const dayEl = document.createElement('div');
+                dayEl.className = `calendar-day ${isSelected ? 'selected' : ''}`;
+                dayEl.innerText = i;
+                dayEl.onclick = () => selectDate(i);
+                container.appendChild(dayEl);
+            }
+        }
+        function selectDate(day) {
+            pickerSelectedDate = new Date(pickerCurrentDate.getFullYear(), pickerCurrentDate.getMonth(), day);
+            renderCalendar();
+        }
+        function changeMonth(dir) {
+            pickerCurrentDate.setMonth(pickerCurrentDate.getMonth() + dir);
+            renderCalendar();
+        }
+        function closeDateTimePicker() { document.getElementById('datetime-picker-overlay').classList.remove('active'); }
+        function saveDateTime() {
+            const y = pickerSelectedDate.getFullYear();
+            const m = String(pickerSelectedDate.getMonth()+1).padStart(2,'0');
+            const d = String(pickerSelectedDate.getDate()).padStart(2,'0');
+            const s = document.getElementById('picker-start-time').value;
+            if(!s) return alert("시간 확인");
+            document.getElementById('add-date').value = `${y}-${m}-${d}`;
+            document.getElementById('add-start-time').value = s;
+            updateDisplayBox(`${y}-${m}-${d}`, s);
+            closeDateTimePicker();
+        }
+        function updateDisplayBox(date, start) {
+            const dObj = new Date(date);
+            const dateStr = `${dObj.getFullYear()}.${String(dObj.getMonth()+1).padStart(2,'0')}.${String(dObj.getDate()).padStart(2,'0')}`;
+            const [h, m] = start.split(':').map(Number);
+            const ampm = h >= 12 ? '오후' : '오전';
+            const h12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+            document.getElementById('datetime-display').textContent = `${dateStr} / ${ampm} ${h12}:${String(m).padStart(2,'0')}`;
+        }
+
+        currentIndex = -1; 
+        renderAll();
+    </script>
+</body>
+</html>
